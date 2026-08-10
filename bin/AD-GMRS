@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CONFIG="${GMRS_CONFIG:-${ROOT}/config/config.sh}"
+[[ -f "$CONFIG" ]] || { echo "ERROR: copy config/config.example.sh to config/config.sh" >&2; exit 2; }
+# shellcheck source=/dev/null
+set -a; source "$CONFIG"; set +a
+export GMRS_ROOT="$ROOT" GMRS_CONFIG="$CONFIG"
+R_RUN=("${CONDA_BIN:-conda}" run --no-capture-output -n "${R_CONDA_ENV:-r_environment_name}" Rscript)
+
+usage() {
+  cat <<'EOF'
+Usage:
+  AD-GMRS validate
+  AD-GMRS weights <gwas|eqtl|pqtl|all>
+  AD-GMRS score <gwas|eqtl|pqtl|all> [plink-bfile-prefix]
+  AD-GMRS train --phenotype FILE --outcome COLUMN [--model FILE]
+  AD-GMRS predict --bfile PREFIX --model FILE [--out FILE]
+  AD-GMRS profile --score-matrix FILE --out FILE
+  AD-GMRS phenotype --disease FILE --baseline FILE --fam FILE --out FILE [--codes CODE1,CODE2] [--outcome-name PHENO] [--mode prevalent|ever]
+EOF
+}
+
+cmd="${1:-}"; [[ $# -gt 0 ]] && shift
+case "$cmd" in
+  validate) [[ $# -eq 0 ]] || { usage; exit 2; }; exec "${ROOT}/scripts/validate.sh" ;;
+  weights) [[ $# -le 1 ]] || { usage; exit 2; }; exec "${ROOT}/scripts/run_prscs.sh" "${1:-all}" ;;
+  score) [[ $# -ge 1 && $# -le 2 ]] || { usage; exit 2; }; exec "${ROOT}/scripts/score_cohort.sh" "$1" "${2:-$TRAIN_BFILE}" ;;
+  train) exec "${R_RUN[@]}" "${ROOT}/scripts/train_model.R" "$@" ;;
+  predict) exec "${ROOT}/scripts/predict_sample.sh" "$@" ;;
+  profile) exec "${R_RUN[@]}" "${ROOT}/scripts/build_population_profile.R" "$@" ;;
+  phenotype) exec "${R_RUN[@]}" "${ROOT}/scripts/build_phenotype.R" "$@" ;;
+  -h|--help|help|"") usage ;;
+  *) echo "ERROR: unknown command: $cmd" >&2; usage; exit 2 ;;
+esac
+
