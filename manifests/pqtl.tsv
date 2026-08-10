@@ -1,0 +1,3 @@
+feature_id	chromosome	summary_file	sample_size
+test_protein_1	1	/path/to/summary/pqtl/test_protein_1.tsv	AUTO
+test_protein_2	2	/path/to/summary/pqtl/test_protein_2.tsv	AUTO

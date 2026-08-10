@@ -1,0 +1,2 @@
+feature_id	chromosome	summary_file	sample_size
+test_gwas	ALL	/path/to/summary/test_gwas.tsv	100000
